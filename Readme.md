@@ -1,7 +1,11 @@
 ### To run the application, clone the project,run
 
 npm install
+
 and set the following environment variables under the ./server directory-
-SERVER_PORT = <Any port number>
-DB_URI = <MONGO_DBI_URI>
-JSON_TOKEN_SECRET = <any random string>
+
+SERVER_PORT = (ANY PORT NUMBER)
+
+DB_URI = (MONGODB URI)
+
+JSON_TOKEN_SECRET = (ANY RANDOM STRING)
