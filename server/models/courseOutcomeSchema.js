@@ -5,34 +5,46 @@ var courseOutcomeSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  COs: [
-    {
-      COslNo: {
-        type: String,
-        default: "",
-      },
-      courseOutcome: {
-        type: String,
-        default: "",
-      },
-      test1: {
-        type: Number,
-        default: 0,
-      },
-      midSem: {
-        type: Number,
-        default: 0,
-      },
-      test2: {
-        type: Number,
-        default: 0,
-      },
-      endSem: {
-        type: Number,
-        default: 0,
-      },
-    },
-  ],
+  session: {
+    type: Number,
+    required: true,
+  },
+  sem: {
+    type: Number,
+    required: true,
+  },
+  dept: {
+    type: String,
+    required: true,
+  },
+  CO1: {
+    type: Number,
+    default: 0,
+  },
+  CO2: {
+    type: Number,
+    default: 0,
+  },
+  CO3: {
+    type: Number,
+    default: 0,
+  },
+  CO4: {
+    type: Number,
+    default: 0,
+  },
+  CO5: {
+    type: Number,
+    default: 0,
+  },
+  CO6: {
+    type: Number,
+    default: 0,
+  },
+  PO: {
+    type: Number,
+    default: 0,
+  },
 });
 
 var CourseOutcome = mongoose.model("CourseOutcome", courseOutcomeSchema);

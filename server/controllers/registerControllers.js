@@ -11,13 +11,12 @@ async function registerStudent(req, res) {
     const {
       name,
       rollNo,
-      gender,
+      sem,
       deptName,
-      semester,
+      gender,
       email,
       password,
       enrolledProgram,
-      courses,
     } = req.body;
 
     console.log(req.body.name, req.body.email);
@@ -35,25 +34,15 @@ async function registerStudent(req, res) {
     const newStudent = new Student({
       name,
       rollNo,
-      gender,
+      sem,
       deptName,
-      semester,
+      gender,
       email,
       password: bcrypt.hashSync(password, 10),
       enrolledProgram,
-      courses,
     });
-
+    console.log("hello");
     await newStudent.save();
-
-    // Sign a JWT access token and return with response
-
-    const payload = {
-      id: newStudent.id,
-      role: "student",
-    };
-
-    const token = jwt.sign(payload, process.env.JSON_TOKEN_SECRET);
 
     // return the created data with token
     return res.status(200).json({
@@ -62,7 +51,6 @@ async function registerStudent(req, res) {
         email: newStudent.email,
         name: newStudent.name,
       },
-      accessToken: token,
     });
   } catch (error) {
     res.status(500).json({ message: "Interval Server Error" });

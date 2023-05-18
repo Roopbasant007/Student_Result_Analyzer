@@ -1,6 +1,6 @@
 var mongoose = require("mongoose");
 
-var marksSchema = new mongoose.Schema({
+var studentMarksSchema = new mongoose.Schema({
   courseCode: {
     type: String,
     required: true,
@@ -111,6 +111,6 @@ var marksSchema = new mongoose.Schema({
   ],
 });
 
-var StudentMarks = mongoose.model("Mark", marksSchema);
+var StudentMarks = mongoose.model("StudentMark", studentMarksSchema);
 
 module.exports = StudentMarks;

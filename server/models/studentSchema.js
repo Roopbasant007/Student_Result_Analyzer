@@ -9,16 +9,16 @@ var studentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  gender: {
-    type: String,
+  sem: {
+    type: Number,
     required: true,
   },
   deptName: {
     type: String,
     required: true,
   },
-  semester: {
-    type: Number,
+  gender: {
+    type: String,
     required: true,
   },
   email: {
@@ -30,16 +30,16 @@ var studentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  curAcademic: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "EnrolledCourse",
+    default: null,
+  },
   enrolledProgram: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Program",
+    default: null,
   },
-  courses: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Course",
-    },
-  ],
 });
 
 var Student = mongoose.model("Student", studentSchema);

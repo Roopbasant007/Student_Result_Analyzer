@@ -1,15 +1,26 @@
 const express = require("express");
+const verifyCookies = require("../middlewares/verifyCookies");
+const { verifyIfAdmin } = require("../middlewares/verifyRole");
 
 const {
   addDepartment,
   addProgram,
-  addCourse,
 } = require("../controllers/adminControllers");
+
+const { getAllPrograms } = require("../controllers/adminDataAccessContollers");
 
 const adminRouter = express.Router();
 
+// data addby admin
 adminRouter.post("/addDepartment", addDepartment);
 adminRouter.post("/addProgram", addProgram);
-adminRouter.post("/addCourse", addCourse);
+
+// data access by admin
+adminRouter.get(
+  "/getAllPrograms",
+  verifyCookies,
+  verifyIfAdmin,
+  getAllPrograms
+);
 
 module.exports = adminRouter;

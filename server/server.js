@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const multer = require("multer");
+const cookieParser = require("cookie-parser");
 const connectToDB = require("./config/dbConn.js");
 
 const app = express();
@@ -20,6 +22,7 @@ const registerRouter = require("./routes/registerRoutes");
 const loginRouter = require("./routes/loginRoutes");
 const adminRouter = require("./routes/adminRoutes");
 const facultyRouter = require("./routes/facultyRoutes");
+const studentRouter = require("./routes/studentRoutes");
 
 // Configuration middlewares
 
@@ -27,14 +30,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
-
-// Custom Middlewares
-
-const verifyJWT = require("./middlewares/veifyJWT");
-const {
-  verifyIfFaculty,
-  verifyIfStudent,
-} = require("./middlewares/verifyRole");
+app.use(cookieParser());
 
 // API Routes
 
@@ -42,6 +38,7 @@ app.use("/api/register", registerRouter);
 app.use("/api/login", loginRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/faculty", facultyRouter);
+app.use("/api/student", studentRouter);
 
 const PORT = process.env.SERVER_PORT || 3000;
 app.listen(PORT, () => {

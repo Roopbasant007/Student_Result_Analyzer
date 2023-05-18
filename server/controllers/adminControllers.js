@@ -12,6 +12,10 @@ async function addDepartment(req, res) {
     if (!deptName || !deptCode)
       return res.status(404).json({ message: "Bad Request" });
 
+    const checkIfDeptExist = await Department.findOne({ deptCode: deptCode });
+    if (checkIfDeptExist)
+      return res.status(400).json({ message: "Dept already added" });
+
     const department = new Department({ deptName, deptCode });
     await department.save();
     return res.status(201).json({ message: "Department added successfully" });
@@ -24,16 +28,23 @@ async function addDepartment(req, res) {
 
 async function addProgram(req, res) {
   try {
-    const { progName, duration, dept } = req.body;
-    if (!dept || !progName || !duration)
+    const { progName, progCode, duration, dept } = req.body;
+    if (!dept || !progName || !progCode || !duration)
       return res
         .status(401)
-        .json({ message: "Bad Request, Please up the form properly" });
+        .json({ message: "Bad Request, Please fill up the form properly" });
 
     const deptId = await Department.findOne({ deptCode: dept });
+    const progExist = await Program.findOne({ belongToDept: deptId._id });
+    if (progExist)
+      return res
+        .status(400)
+        .json({ message: "Program already exist for this dept" });
+    console.log(deptId);
 
     const program = new Program({
       progName,
+      progCode,
       duration,
       belongToDept: deptId._id,
     });
@@ -46,51 +57,5 @@ async function addProgram(req, res) {
 }
 
 // Add Course
-async function addCourse(req, res) {
-  try {
-    const {
-      courseCode,
-      courseName,
-      courseType,
-      credit,
-      semester,
-      faculty_id,
-      program_id,
-    } = req.body;
 
-    if (
-      !courseCode ||
-      !courseName ||
-      !courseType ||
-      !credit ||
-      !semester ||
-      !faculty_id ||
-      !program_id
-    )
-      return res
-        .status(401)
-        .json({ message: "Bad Request, Please fill up the form properly" });
-
-    const programId = await Program.findOne({ _id: program_id });
-
-    const facultyId = await Faculty.findOne({ _id: faculty_id });
-
-    const course = new Course({
-      courseCode,
-      courseName,
-      courseType,
-      credit,
-      semester,
-      teachingFaculty: facultyId,
-      belongingProgram: programId,
-    });
-
-    await course.save();
-
-    return res.status(201).json({ message: "Course Added Successfully" });
-  } catch (error) {
-    return res.status(501).json({ message: "Internal Server Error" });
-  }
-}
-
-module.exports = { addDepartment, addProgram, addCourse };
+module.exports = { addDepartment, addProgram };

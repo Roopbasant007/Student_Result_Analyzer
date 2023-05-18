@@ -29,17 +29,22 @@ async function loginStudent(req, res) {
 
     const payload = {
       id: checkStudent.id,
+      rollno: checkStudent.rollNo,
       role: "student",
     };
 
-    const token = jwt.sign(payload, process.env.JSON_TOKEN_SECRET, {
-      expiresIn: 86400, // Token will be valid for a day long
+    const token = jwt.sign(payload, process.env.JSON_TOKEN_SECRET);
+
+    // setting the token values in cookies
+    res.cookie("jwt", token, {
+      expires: new Date(Date.now() + 10800000),
     });
 
     // return the created data with token
     return res.status(200).json({
       student: {
         id: checkStudent.id,
+        rollno: checkStudent.rollNo,
         email: checkStudent.email,
         name: checkStudent.name,
       },
@@ -76,11 +81,14 @@ async function loginFaculty(req, res) {
 
     const payload = {
       id: checkFaculty.id,
+      rollno: checkFaculty.id,
       role: "faculty",
     };
 
-    const token = jwt.sign(payload, process.env.JSON_TOKEN_SECRET, {
-      expiresIn: 86400, // Token will be valid for a day long
+    const token = jwt.sign(payload, process.env.JSON_TOKEN_SECRET);
+
+    res.cookie("jwt", token, {
+      expires: new Date(Date.now() + 86400000),
     });
 
     // return the created data with token
@@ -121,11 +129,15 @@ async function loginAdmin(req, res) {
 
     const payload = {
       id: checkAdmin.id,
+      rollNo: checkAdmin.rollNo,
       role: "admin",
     };
 
-    const token = jwt.sign(payload, process.env.JSON_TOKEN_SECRET, {
-      expiresIn: 86400, // Token will be valid for a day long
+    const token = jwt.sign(payload, process.env.JSON_TOKEN_SECRET);
+
+    // creation of cookies for token
+    res.cookie("jwt", token, {
+      expires: new Date(Date.now() + 86400000),
     });
 
     // return the created data with token
