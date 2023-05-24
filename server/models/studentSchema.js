@@ -13,6 +13,10 @@ var studentSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  yoa: {
+    type: Number,
+    required: true,
+  },
   deptName: {
     type: String,
     required: true,
@@ -36,9 +40,8 @@ var studentSchema = new mongoose.Schema({
     default: null,
   },
   enrolledProgram: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Program",
-    default: null,
+    type: String,
+    required: true,
   },
 });
 

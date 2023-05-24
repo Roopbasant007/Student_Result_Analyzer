@@ -1,75 +1,69 @@
 var mongoose = require("mongoose");
 
 var resultSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
   rollNo: {
     type: String,
     required: true,
   },
-  semesterNo: {
+  sem: {
     type: Number,
     required: true,
   },
-  grades: [
+  period: {
+    type: String,
+    required: true,
+  },
+  session: {
+    type: Number,
+    required: true,
+  },
+  progName: {
+    type: String,
+    required: true,
+  },
+  deptName: {
+    type: String,
+    required: true,
+  },
+  courses: [
     {
       courseCode: {
         type: String,
-        required: true,
       },
-      test1: {
-        grade: {
-          type: String,
-          default: " ",
-        },
-        comment: {
-          type: String,
-          default: " ",
-        },
+      courseTitle: {
+        type: String,
       },
-      MidSem: [
-        {
-          grade: {
-            type: String,
-            default: " ",
-          },
-          comment: {
-            type: String,
-            default: " ",
-          },
-        },
-      ],
-      test2: [
-        {
-          grade: {
-            type: String,
-            default: " ",
-          },
-          comment: {
-            type: String,
-            default: " ",
-          },
-        },
-      ],
-      EndSem: [
-        {
-          grade: {
-            type: String,
-            default: " ",
-          },
-          comment: {
-            type: String,
-            default: " ",
-          },
-        },
-      ],
+      credit: {
+        type: String,
+      },
+      gradeObt: {
+        type: String,
+      },
     },
   ],
+  totalCourses: {
+    type: Number,
+    default: 0,
+  },
+  totalCreditCounted: {
+    type: Number,
+    default: 0,
+  },
+  totalGradePointEarned: {
+    type: Number,
+    default: 0,
+  },
   sgpa: {
     type: Number,
     default: 0,
   },
-  comments: {
-    type: String,
-    default: " ",
+  cgpa: {
+    type: Number,
+    default: 0,
   },
 });
 

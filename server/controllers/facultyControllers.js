@@ -11,16 +11,10 @@ const COMaxMarks = require("../models/coWiseMaxMarks");
 const FinalMarksInPercentage = require("../models/finalMarksSchema");
 const CourseOutcome = require("../models/courseOutcomeSchema");
 const Grades = require("../models/gradesSchema");
+const ProgramOutcome = require("../models/programOutcomeSchema");
 
 // Reading of the file content uploaded
-const readUploadedFile = async (
-  filename,
-  sem,
-  courseCode,
-  session,
-  eType,
-  dept
-) => {
+const readUploadedFile = async (filename, eType, courseId) => {
   try {
     var workbook = XLSX.readFile(`./uploads/marks/${filename}`);
     var worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -106,11 +100,10 @@ const readUploadedFile = async (
       l++;
     }
 
+    let coMaxTotal = co1Max + co2Max + co3Max + co4Max + co5Max + co6Max;
+    // console.log("comaxtotal:" + coMaxTotal);
     const coMaxMark = new COMaxMarks({
-      dept: dept,
-      sem: sem,
-      courseCode: courseCode,
-      session: session,
+      courseId: courseId,
       eType: eType,
       CO1Max: co1Max,
       CO2Max: co2Max,
@@ -118,9 +111,13 @@ const readUploadedFile = async (
       CO4Max: co4Max,
       CO5Max: co5Max,
       CO6Max: co6Max,
+      maxMarks: coMaxTotal,
     });
     await coMaxMark.save();
     // console.log(coMaxMark);
+
+    // declare an array to store the marks of each student and then use a single database operation for bulk write
+    let studentsMarks = [];
 
     var k = 4;
     var l = 0;
@@ -134,6 +131,7 @@ const readUploadedFile = async (
       var co4 = 0;
       var co5 = 0;
       var co6 = 0;
+
       while (l < noOfQuestions) {
         let marks = worksheet[Alphabets[l + 1] + `${k}`]?.v;
         switch (COs[l]) {
@@ -159,13 +157,41 @@ const readUploadedFile = async (
         l++;
       }
 
+      let total = co1 + co2 + co3 + co4 + co5 + co6;
+      let percentage = (total / coMaxTotal) * 100;
+      // console.log("total:" + total);
+      // console.log("perct:" + percentage);
+      let categorization = "";
+
+      // deteemining the category of student based on their percentage marks obtained in each sessional
+      if (eType == "Test1" || eType == "Test2") {
+        if (percentage >= 90) categorization = "Excellent";
+        else if (percentage >= 80) categorization = "Very Good";
+        else if (percentage >= 70) categorization = "Good";
+        else if (percentage >= 56) categorization = "Average";
+        else if (percentage >= 44) categorization = "Below Average";
+        else if (percentage >= 32) categorization = "Poor";
+        else if (percentage >= 24) categorization = "Pass";
+        else categorization = "Fail";
+      }
+
+      if (eType == "MidTerm" || eType == "EndTerm") {
+        if (percentage >= 85) categorization = "Excellent";
+        else if (percentage >= 76) categorization = "Very Good";
+        else if (percentage >= 66) categorization = "Good";
+        else if (percentage >= 54) categorization = "Average";
+        else if (percentage >= 42) categorization = "Below Average";
+        else if (percentage >= 35) categorization = "Poor";
+        else if (percentage >= 27) categorization = "Pass";
+        else categorization = "Fail";
+      }
+
+      // console.log("categorization:" + categorization);
+
       // creation of documents
       const studentMarks = new Marks({
-        dept: dept,
         rollno: rollNo,
-        sem: sem,
-        courseCode: courseCode,
-        session: session,
+        courseId: courseId,
         eType: eType,
         CO1: co1,
         CO2: co2,
@@ -173,30 +199,30 @@ const readUploadedFile = async (
         CO4: co4,
         CO5: co5,
         CO6: co6,
+        total: total,
+        category: categorization,
       });
-
-      await studentMarks.save();
+      studentsMarks.push(studentMarks);
+      // await studentMarks.save();
       // console.log(studentMarks);
 
       l = 0;
       k++;
     }
 
+    // saving studentsmarks into database with bulk write operation
+    await Marks.insertMany(studentsMarks);
+
     if (eType == "EndTerm") {
       // Calculation of individual COs max marks for all the tests
 
       const cumCO = await COMaxMarks.find(
         {
-          dept: dept,
-          sem: sem,
-          courseCode: courseCode,
-          session: session,
+          courseId: courseId,
         },
         {
-          dept: false,
-          sem: false,
-          courseCode: false,
-          session: false,
+          courseId: false,
+          maxMarks: false,
           _id: false,
           __v: false,
         }
@@ -231,21 +257,19 @@ const readUploadedFile = async (
       // Final marks of each student in a subject in each COs
       const finalMarks = await Marks.find(
         {
-          dept: dept,
-          sem: sem,
-          courseCode: courseCode,
-          session: session,
+          courseId: courseId,
         },
         {
-          dept: false,
-          sem: false,
-          courseCode: false,
-          session: false,
+          total: false,
+          categorization: false,
+          courseId: false,
           _id: false,
           __v: false,
         }
       );
       // console.log(finalMarks);
+
+      let finalMarksInPercentages = [];
 
       // In Order to storing the marks in percentage of every student
 
@@ -309,7 +333,7 @@ const readUploadedFile = async (
         );
 
         let grandTotalObtMarks = 0;
-        let count = [0, 0, 0, 0, 0, 0]; // it will count the how many COs have benn included the evaluation plan
+        let count = [0, 0, 0, 0, 0, 0]; // it will count the how many COs have been included for the evaluation plan
         for (let i = 0; i < 6; i++) {
           {
             if (COsFinal[i] >= 0) {
@@ -328,11 +352,8 @@ const readUploadedFile = async (
         }
 
         const finalMarksInPercent = new FinalMarksInPercentage({
-          dept: dept,
-          sem: sem,
-          courseCode: courseCode,
-          session: session,
           rollNo: rNo,
+          courseId: courseId,
           CO1Total: COsFinal[0],
           CO2Total: COsFinal[1],
           CO3Total: COsFinal[2],
@@ -342,10 +363,14 @@ const readUploadedFile = async (
           grandTotal: grandTotalObtMarks,
         });
 
-        await finalMarksInPercent.save();
+        finalMarksInPercentages.push(finalMarksInPercent);
+        // await finalMarksInPercent.save();
 
         k++;
       }
+
+      // bulk write operation for saving the student marks in percentage for grade calculation and also in Co-Po calculation
+      await FinalMarksInPercentage.insertMany(finalMarksInPercentages);
     }
   } catch (error) {
     console.log(error);
@@ -353,12 +378,11 @@ const readUploadedFile = async (
 };
 
 // generating CourseOutcome and ProgramOutcome
-const generateProgramOutcome = async (COs, cCode, session) => {
+const generateProgramOutcome = async (COs, courseID) => {
   try {
     const COPOMap = await Course.findOne(
       {
-        courseCode: cCode,
-        session: session,
+        _id: courseID,
       },
       {
         courseCode: false,
@@ -367,6 +391,7 @@ const generateProgramOutcome = async (COs, cCode, session) => {
         credit: false,
         semester: false,
         session: false,
+        period: false,
         teachingFaculty: false,
         belongingDepartment: false,
         belongingProgram: false,
@@ -378,8 +403,10 @@ const generateProgramOutcome = async (COs, cCode, session) => {
     // console.log(COs);
 
     let copoMap = Object.values(COPOMap.CoPoMap);
-    let sum = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    let count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let sum = [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ];
 
     for (let i = 0; i < 6; i++) {
       let CPM = Object.values(copoMap[i]);
@@ -388,26 +415,51 @@ const generateProgramOutcome = async (COs, cCode, session) => {
         // check if for each COs corresponding Pos have positive value
         if (CPM[j] > 0) {
           CPM[j] = CPM[j] * (COs[i] / 3);
-          sum[j] = sum[j] + CPM[j];
-          count[j] = count[j] + 1;
+          sum[0][j] = sum[0][j] + CPM[j];
+          sum[1][j] = sum[1][j] + 1;
         }
       }
-
-      // console.log(sum, count);
       // console.log("After:" + CPM);
     }
     // console.log(sum, count);
     // calculation of average of COs corresponding to each PO
-    let PO = 0;
+    let poValue = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let ProgOutcome = 0;
     let cnt = 0;
     for (let i = 0; i < 15; i++) {
-      if (sum[i] > 0) {
-        PO += sum[i] / count[i];
+      if (sum[0][i] > 0) {
+        ProgOutcome += sum[0][i] / sum[1][i];
+        poValue[i] = sum[0][i] / sum[1][i];
         cnt++;
       }
     }
+
+    poValue.push(ProgOutcome / cnt);
+
+    const newProgOutcome = new ProgramOutcome({
+      courseId: courseID,
+      PO1: poValue[0],
+      PO2: poValue[1],
+      PO3: poValue[2],
+      PO4: poValue[3],
+      PO5: poValue[4],
+      PO6: poValue[5],
+      PO7: poValue[6],
+      PO8: poValue[7],
+      PO9: poValue[8],
+      PO10: poValue[9],
+      PO11: poValue[10],
+      PO12: poValue[11],
+      PSO1: poValue[12],
+      PSO2: poValue[13],
+      PSO3: poValue[14],
+      PO: poValue[15],
+    });
+
+    await newProgOutcome.save();
+
     // console.log(PO, cnt);
-    return PO / cnt;
+    return poValue;
   } catch (error) {
     console.log(error);
   }
@@ -479,7 +531,7 @@ const genRelativeGrading = async (topper, sMarks) => {
         else if (topper.Grade == "B") grade = "P";
         else if (topper.Grade == "C") grade = "F";
         else if (topper.Grade == "P") grade = "F";
-      } else if (marks.grandTotal >= topper.Mark - 21) {
+      } else if (marks.grandTotal >= topper.Mark - 20) {
         if (topper.Grade == "O") grade = "B+";
         else if (topper.Grade == "A+") grade = "B";
         else if (topper.Grade == "A") grade = "C";
@@ -487,16 +539,16 @@ const genRelativeGrading = async (topper, sMarks) => {
         else if (topper.Grade == "B") grade = "F";
         else if (topper.Grade == "C") grade = "F";
         else if (topper.Grade == "P") grade = "F";
-      } else if (marks.grandTotal >= topper.Mark - 29) {
+      } else if (marks.grandTotal >= topper.Mark - 26) {
         if (topper.Grade == "O") grade = "B";
         else if (topper.Grade == "A+") grade = "C";
         else if (topper.Grade == "A") grade = "P";
         else grade = "F";
-      } else if (marks.grandTotal >= topper.Mark - 43) {
+      } else if (marks.grandTotal >= topper.Mark - 36) {
         if (topper.Grade == "O") grade = "C";
         else if (topper.Grade == "A+") grade = "P";
         else grade = "F";
-      } else if (marks.grandTotal >= topper.Mark - 55) {
+      } else if (marks.grandTotal >= topper.Mark - 42) {
         if (topper.Grade == "O") grade = "P";
         else grade = "F";
       }
@@ -533,9 +585,10 @@ const relativeGradingUsingClustering = async (topper, sMarks) => {
 async function studentMarks(req, res) {
   try {
     const fname = req.file.filename;
-    const { session, dept, eType, sem, courseCode } = req.body;
-    console.log(fname, session, dept, sem, courseCode, eType);
-    if (!fname || !session || !dept || !sem || !courseCode || !eType) {
+    const courseId = req.params.id;
+    const { eType } = req.body;
+    console.log(fname, eType, courseId);
+    if (!fname || !eType || !courseId) {
       return res
         .status(404)
         .json({ message: "Please fill up the required field properly" });
@@ -549,7 +602,7 @@ async function studentMarks(req, res) {
     // if (CheckMarksExist != null)
     //   return res.status(403).json({ message: "Marks already Uploaded" });
 
-    readUploadedFile(fname, sem, courseCode, session, eType, dept);
+    readUploadedFile(fname, eType, courseId);
     return res.status(201).json("Marks Uploaded successfully");
   } catch (error) {
     console.log(error);
@@ -567,8 +620,8 @@ async function addCourseAndOutcome(req, res) {
       credit,
       semester,
       session,
+      period,
       CoPoMap,
-      teachingFac,
       belongingProg,
       belongingDept,
     } = req.body;
@@ -579,17 +632,14 @@ async function addCourseAndOutcome(req, res) {
       !credit ||
       !semester ||
       !session ||
+      !period ||
       !CoPoMap
     )
       return res
         .status(404)
         .json({ message: "Bad Request Empty field are not allowed" });
-    const teachingFaculty = await Faculty.findOne({ email: teachingFac });
-    const belongingProgram = await Program.findOne({ progCode: belongingProg });
-    const belongingDepartment = await Department.findOne({
-      deptCode: belongingDept,
-    });
-    console.log(teachingFaculty._id, belongingProgram, belongingDepartment);
+
+    console.log(req.id);
     const course = new Course({
       courseCode: cCode,
       courseName: cName,
@@ -597,10 +647,11 @@ async function addCourseAndOutcome(req, res) {
       credit: credit,
       semester: semester,
       session: session,
+      period: period,
       CoPoMap: CoPoMap,
-      teachingFaculty: teachingFaculty._id,
-      belongingProgram: belongingProgram._id,
-      belongingDepartment: belongingDepartment._id,
+      teachingFaculty: req.id,
+      belongingProgram: belongingProg,
+      belongingDepartment: belongingDept,
     });
 
     await course.save();
@@ -616,49 +667,40 @@ async function addCourseAndOutcome(req, res) {
 // Generate Final Course Outcome
 async function generateFinalCourseAndProgramOutcome(req, res) {
   try {
-    const { session, dept, sem, courseCode, threshold, thresholdForCO } =
-      req.body;
+    const courseID = req.params.id;
+    const { threshold, thresholdForCO } = req.body;
 
     // console.log(session, dept, sem, courseCode, threshold);
 
-    if (!session || !dept || !sem || !courseCode || !threshold)
+    if (!threshold)
       return res
         .status(404)
         .json({ message: "All the mandatory field should be filled properly" });
 
     const checkCOExist = await CourseOutcome.findOne(
       {
-        courseCode: courseCode,
-        session: session,
-        sem: sem,
-        dept: dept,
+        courseId: courseID,
       },
       {
-        courseCode: false,
-        session: false,
-        sem: false,
-        dept: false,
+        courseId: false,
         _id: false,
         __v: false,
       }
     );
 
-    // console.log(checkCOExist);
+    const checkPoExist = await ProgramOutcome.findOne({
+      courseId: courseID,
+    }).select("-_id -__v -courseId");
 
-    if (checkCOExist) return res.status(403).json(checkCOExist);
+    if (checkCOExist && checkPoExist)
+      return res.status(302).json({ CO: checkCOExist, PO: checkPoExist });
 
     const studentMarks = await FinalMarksInPercentage.find(
       {
-        session: session,
-        dept: dept,
-        sem: sem,
-        courseCode: courseCode,
+        courseId: courseID,
       },
       {
-        dept: false,
-        sem: false,
-        courseCode: false,
-        session: false,
+        courseId: false,
         _id: false,
         __v: false,
       }
@@ -701,37 +743,51 @@ async function generateFinalCourseAndProgramOutcome(req, res) {
     }
 
     // calculation of POs
-    const PO = await generateProgramOutcome(COs, courseCode, session);
+    const poValue = await generateProgramOutcome(COs, courseID);
 
-    // console.log(COs);
+    console.log(poValue[0]);
     // Saves the finalCourse on sacle of 1 to 3.
     const finalCOs = new CourseOutcome({
-      courseCode: courseCode,
-      session: session,
-      sem: sem,
-      dept: dept,
+      courseId: courseID,
       CO1: COs[0],
       CO2: COs[1],
       CO3: COs[2],
       CO4: COs[3],
       CO5: COs[4],
       CO6: COs[5],
-      PO: PO,
     });
 
     await finalCOs.save();
 
-    let data = {
+    let CourseOutcomes = {
       CO1: COs[0],
       CO2: COs[1],
       CO3: COs[2],
       CO4: COs[3],
       CO5: COs[4],
       CO6: COs[5],
-      PO: PO,
     };
 
-    return res.status(201).json(data);
+    let ProgramOutcomes = {
+      PO1: poValue[0],
+      PO2: poValue[1],
+      PO3: poValue[2],
+      PO4: poValue[3],
+      PO5: poValue[4],
+      PO6: poValue[5],
+      PO7: poValue[6],
+      PO8: poValue[7],
+      PO9: poValue[8],
+      PO10: poValue[9],
+      PO11: poValue[10],
+      PO12: poValue[11],
+      PSO1: poValue[12],
+      PSO2: poValue[13],
+      PSO3: poValue[14],
+      PO: poValue[15],
+    };
+
+    return res.status(201).json({ CO: CourseOutcomes, PO: ProgramOutcomes });
   } catch (error) {
     console.log(error);
     res.status(501).json({ message: "Internal Server Error" });
@@ -741,35 +797,28 @@ async function generateFinalCourseAndProgramOutcome(req, res) {
 // Get Course Outcome and Program Outcome
 async function getCOPO(req, res) {
   try {
-    const { courseCode, session, sem } = req.body;
-    if (!courseCode || !session || !sem)
-      return res.status(403).json({
-        message: "either coursecode, session or sem is not fill properly",
-      });
-    const checkCOPOExist = await CourseOutcome.findOne(
+    const courseID = req.params.id;
+    const checkCOExist = await CourseOutcome.findOne(
       {
-        curseCode: courseCode,
-        session: session,
-        sem: sem,
+        courseId: courseID,
       },
       {
-        courseCode: false,
-        session: false,
-        sem: false,
-        dept: false,
+        courseId: false,
         _id: false,
         __v: false,
       }
     );
 
+    const checkPoExist = await ProgramOutcome.findOne({
+      courseId: courseID,
+    }).select("-_id -__v -courseId");
+
     // Resource doesnot exist
-    if (!checkCOPOExist)
-      return res
-        .status(404)
-        .josn({ message: "No such CO and PO for this course" });
+    if (!checkCOExist && !checkPoExist)
+      return res.status(204).json({ CO: checkCOExist, PO: checkPoExist });
 
     // resource exist so return back targeted resource
-    return res.status(200).json(checkCOPOExist);
+    return res.status(200).json({ CO: checkCOExist, PO: checkPoExist });
   } catch (error) {
     console.log(error);
     return res.status(501).json({ message: "Internal server error" });
@@ -839,13 +888,10 @@ async function generateStudentsResult(req, res) {
 
 async function getTempResult(req, res) {
   try {
-    const { courseCode, session } = req.body;
-    if (!courseCode || !session)
-      return res
-        .status(404)
-        .json({ message: "either CourseCode or Session are empty" });
+    const courseID = req.params.id;
+
     const checkFinalMarksExist = await FinalMarksInPercentage.find(
-      { courseCode: courseCode, session: session },
+      { courseId: courseID },
       {
         _id: 0,
         rollNo: 1,
@@ -971,11 +1017,11 @@ async function getTempResult(req, res) {
       else if (grades == "F") count[7]++;
     });
 
-    let fR = {
+    let gradeFreq = {
       O: count[0],
-      "A+": count[1],
+      Aplus: count[1],
       A: count[2],
-      "B+": count[3],
+      Bplus: count[3],
       B: count[4],
       C: count[5],
       P: count[6],
@@ -983,7 +1029,7 @@ async function getTempResult(req, res) {
     };
 
     console.log(fR);
-    return res.status(200).json(fR);
+    return res.status(200).json({ gradeFreq: gradeFreq, result: result });
   } catch (error) {
     console.log(error);
     return res.status(501).json({ message: "Internal server error" });
@@ -992,85 +1038,91 @@ async function getTempResult(req, res) {
 
 // generate the final result
 async function generateGrades(req, res) {
-  const { cCode, session, range } = req.body;
+  try {
+    const { range } = req.body;
+    const courseID = req.params.courseId;
+    console.log(courseID);
 
-  // check if the required field are empty or not
-  if (!cCode || !session || !range)
-    return res
-      .status(404)
-      .json({ message: "either courseCode or session or range is empty" });
+    // check if the required field are empty or not
+    if (!range) return res.status(404).json({ message: "Range is empty" });
 
-  // check if the marks for the courseCode and session exist or not
-  const checkFinalMarksExist = await FinalMarksInPercentage.find(
-    { courseCode: cCode, session: session },
-    {
-      _id: 0,
-      rollNo: 1,
-      grandTotal: 1,
-    }
-  ).sort({ rollNo: 1 });
+    // check if the marks for the courseCode and session exist or not
+    const checkFinalMarksExist = await FinalMarksInPercentage.find(
+      { courseId: courseID },
+      {
+        _id: 0,
+        rollNo: 1,
+        grandTotal: 1,
+      }
+    ).sort({ rollNo: 1 });
 
-  if (!checkFinalMarksExist)
-    return res.status(403).json({ message: "resource access denied" });
+    if (!checkFinalMarksExist)
+      return res.status(403).json({ message: "resource access denied" });
 
-  // if marks exist then calculate the result of student using supplied range
-  let result = [];
-  checkFinalMarksExist.forEach((marks) => {
-    let grade;
+    // if marks exist then calculate the result of student using supplied range
+    let result = [];
+    checkFinalMarksExist.forEach((marks) => {
+      let grade;
 
-    // Decide the grade based on the range of marks for grading
-    if (marks.grandTotal >= range[0].min && marks.grandTotal <= range[0].max)
-      grade = "O";
-    else if (
-      marks.grandTotal >= range[1].min &&
-      marks.grandTotal < range[1].max
-    )
-      grade = "A+";
-    else if (
-      marks.grandTotal >= range[2].min &&
-      marks.grandTotal < range[2].max
-    )
-      grade = "A";
-    else if (
-      marks.grandTotal >= range[3].min &&
-      marks.grandTotal < range[3].max
-    )
-      grade = "B+";
-    else if (
-      marks.grandTotal >= range[4].min &&
-      marks.grandTotal < range[4].max
-    )
-      grade = "B";
-    else if (
-      marks.grandTotal >= range[5].min &&
-      marks.grandTotal < range[5].max
-    )
-      grade = "C";
-    else if (
-      marks.grandTotal >= range[6].min &&
-      marks.grandTotal < range[6].max
-    )
-      grade = "P";
-    else if (
-      marks.grandTotal >= range[7].min &&
-      marks.grandTotal < range[7].max
-    )
-      grade = "F";
+      // Decide the grade based on the range of marks for grading
+      if (marks.grandTotal >= range[0].min && marks.grandTotal <= range[0].max)
+        grade = "O";
+      else if (
+        marks.grandTotal >= range[1].min &&
+        marks.grandTotal < range[1].max
+      )
+        grade = "A+";
+      else if (
+        marks.grandTotal >= range[2].min &&
+        marks.grandTotal < range[2].max
+      )
+        grade = "A";
+      else if (
+        marks.grandTotal >= range[3].min &&
+        marks.grandTotal < range[3].max
+      )
+        grade = "B+";
+      else if (
+        marks.grandTotal >= range[4].min &&
+        marks.grandTotal < range[4].max
+      )
+        grade = "B";
+      else if (
+        marks.grandTotal >= range[5].min &&
+        marks.grandTotal < range[5].max
+      )
+        grade = "C";
+      else if (
+        marks.grandTotal >= range[6].min &&
+        marks.grandTotal < range[6].max
+      )
+        grade = "P";
+      else if (
+        marks.grandTotal >= range[7].min &&
+        marks.grandTotal < range[7].max
+      )
+        grade = "F";
 
-    const gradesObt = new Grades({
-      courseCode: cCode,
-      session: session,
-      rollNo: marks.rollNo,
-      gradeObt: grade,
+      const gradesObt = new Grades({
+        courseId: courseID,
+        rollNo: marks.rollNo,
+        gradeObt: grade,
+      });
+
+      result.push(gradesObt);
     });
 
-    result.push(gradesObt);
-  });
-
-  // Once the array of result has been generated then create the document of Grade collection
-  await Grades.insertMany(result);
-  return res.status(200).json({ message: "Grading has been finished", result });
+    // Once the array of result has been generated then create the document of Grade collection
+    await Grades.insertMany(result);
+    return res
+      .status(200)
+      .json({ message: "Grading has been finished", result });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
 }
+
 module.exports = {
   addCourseAndOutcome,
   studentMarks,

@@ -1,27 +1,15 @@
 const mongoose = require("mongoose");
 
 var maxMarksCOSchema = new mongoose.Schema({
-  dept: {
-    type: String,
-    required: true,
-  },
-  sem: {
-    type: Number,
-    required: true,
-  },
-  courseCode: {
-    type: String,
-    required: true,
-  },
-  session: {
-    type: Number,
+  courseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Course",
     required: true,
   },
   eType: {
     type: String,
     required: true,
   },
-
   CO1Max: {
     type: Number,
     default: 0,
@@ -43,6 +31,10 @@ var maxMarksCOSchema = new mongoose.Schema({
     default: 0,
   },
   CO6Max: {
+    type: Number,
+    default: 0,
+  },
+  maxMarks: {
     type: Number,
     default: 0,
   },

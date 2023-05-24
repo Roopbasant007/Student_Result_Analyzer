@@ -1,20 +1,8 @@
 const mongoose = require("mongoose");
 
 var courseOutcomeSchema = new mongoose.Schema({
-  courseCode: {
-    type: String,
-    required: true,
-  },
-  session: {
-    type: Number,
-    required: true,
-  },
-  sem: {
-    type: Number,
-    required: true,
-  },
-  dept: {
-    type: String,
+  courseId: {
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
   CO1: {
@@ -38,10 +26,6 @@ var courseOutcomeSchema = new mongoose.Schema({
     default: 0,
   },
   CO6: {
-    type: Number,
-    default: 0,
-  },
-  PO: {
     type: Number,
     default: 0,
   },

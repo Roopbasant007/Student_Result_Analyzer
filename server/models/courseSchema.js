@@ -27,6 +27,11 @@ var courseSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  period: {
+    type: String,
+    required: true,
+    enum: ["Spring", "Autumn"],
+  },
   CoPoMap: {
     CO1: {
       PO1: {
@@ -406,12 +411,12 @@ var courseSchema = new mongoose.Schema({
     ref: "Faculty",
   },
   belongingProgram: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Program",
+    type: String,
+    required: true,
   },
   belongingDepartment: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Department",
+    type: String,
+    required: true,
   },
 });
 

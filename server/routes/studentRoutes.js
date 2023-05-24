@@ -7,7 +7,15 @@ const {
   getCurSemEnrolledCourses,
   getPrevSemsEnrolledCourses,
   getCourseDetail,
+  getProgress,
+  getCurSemResult,
 } = require("../controllers/studentControllers");
+
+// student update routes
+
+const {
+  updateEnrolledCourses,
+} = require("../controllers/studentUpdateControllers");
 
 const studentRouter = express.Router();
 
@@ -16,6 +24,13 @@ studentRouter.post(
   verifyCookies,
   verifyIfStudent,
   courseEnrollement
+);
+
+studentRouter.post(
+  "/updateCourseEnrollment",
+  verifyCookies,
+  verifyIfStudent,
+  updateEnrolledCourses
 );
 
 studentRouter.get(
@@ -37,6 +52,20 @@ studentRouter.get(
   verifyCookies,
   verifyIfStudent,
   getCourseDetail
+);
+
+studentRouter.get(
+  "/curSemEnrolledCourses/:courseId/progress",
+  verifyCookies,
+  verifyIfStudent,
+  getProgress
+);
+
+studentRouter.get(
+  "/result/curSemResult",
+  verifyCookies,
+  verifyIfStudent,
+  getCurSemResult
 );
 
 module.exports = studentRouter;

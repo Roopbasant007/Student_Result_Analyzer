@@ -1,27 +1,15 @@
 const mongoose = require("mongoose");
 
 var finalMarksSchema = new mongoose.Schema({
-  dept: {
-    type: String,
-    required: true,
-  },
-  sem: {
-    type: Number,
-    required: true,
-  },
-  courseCode: {
-    type: String,
-    required: true,
-  },
-  session: {
-    type: Number,
-    required: true,
-  },
   rollNo: {
     type: String,
     required: true,
   },
-
+  courseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Course",
+    required: true,
+  },
   CO1Total: {
     type: Number,
     default: 0,

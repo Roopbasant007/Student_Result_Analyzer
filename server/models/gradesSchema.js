@@ -1,12 +1,9 @@
 var mongoose = require("mongoose");
 
 var gradesSchema = new mongoose.Schema({
-  courseCode: {
-    type: String,
-    required: true,
-  },
-  session: {
-    type: Number,
+  courseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Course",
     required: true,
   },
   rollNo: {
