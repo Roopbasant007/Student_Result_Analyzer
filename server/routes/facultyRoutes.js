@@ -8,6 +8,9 @@ const {
   getCurSessionCourses,
   getAllSessionCourses,
   getPerformances,
+  getAlreadyUploadedMarksInfo,
+  updateProfile,
+  getFacultyProfile,
 } = require("../controllers/facultyDashboardControllers");
 
 const {
@@ -16,7 +19,7 @@ const {
   generateFinalCourseAndProgramOutcome,
   getCOPO,
   generateStudentsResult,
-  getTempResult,
+  getTempGrades,
   generateGrades,
 } = require("../controllers/facultyControllers");
 
@@ -43,6 +46,9 @@ facultyRouter.post(
   addCourseAndOutcome
 );
 
+// file upload
+// facultyRouter.post("/fileUpload", verifyCookies, verifyIfFaculty, uploadMarks);
+
 facultyRouter.post(
   "/uploadMarks/:id",
   verifyCookies,
@@ -64,7 +70,7 @@ facultyRouter.get(
   getCOPO
 );
 facultyRouter.get("/studentResult", generateStudentsResult);
-facultyRouter.get("/tempResult", getTempResult);
+facultyRouter.get("/tempResult/:id", getTempGrades);
 
 facultyRouter.post(
   "/generateGrades/:courseId",
@@ -78,6 +84,27 @@ facultyRouter.get(
   verifyCookies,
   verifyIfFaculty,
   getPerformances
+);
+
+facultyRouter.get(
+  "/:courseId/alredyUploadedMarksEtype",
+  verifyCookies,
+  verifyIfFaculty,
+  getAlreadyUploadedMarksInfo
+);
+
+facultyRouter.put(
+  "/updateProfile",
+  verifyCookies,
+  verifyIfFaculty,
+  updateProfile
+);
+
+facultyRouter.get(
+  "/facultyProfile",
+  verifyCookies,
+  verifyIfFaculty,
+  getFacultyProfile
 );
 
 module.exports = facultyRouter;

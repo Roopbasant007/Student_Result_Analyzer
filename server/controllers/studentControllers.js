@@ -33,7 +33,7 @@ async function courseEnrollement(req, res) {
     //     Course.findOne({ session: session, semester: sem, courseCode: code })
     //   )
     // );
-    console.log(cId);
+    console.log("cid:" + cId);
     // check that student has alrady registered for the courses or not, he/she is trying to register
     if (cId.includes(null))
       return res
@@ -66,13 +66,15 @@ async function courseEnrollement(req, res) {
       sem: sem,
       period: period,
     });
-    // await newEnrollment.save();
+    await newEnrollment.save();
     // updates the current academics of the registered student
     console.log(newEnrollment._id);
-    // await Student.findByIdAndUpdate(
-    //   { _id: id },
-    //   { curAcademic: newEnrollment._id }
-    // );
+    const updatedcourse = await Student.findOneAndUpdate(
+      { _id: id },
+      { curAcademic: newEnrollment._id },
+      { new: true }
+    );
+    console.log(updatedcourse);
 
     return res.status(201).json({ message: "Course Enrolled Successfully" });
   } catch (error) {
@@ -95,6 +97,8 @@ async function getCurSemEnrolledCourses(req, res) {
       })
       .select("");
 
+    // console.log(courses[0]);
+
     if (!courses.length)
       return res
         .status(204)
@@ -102,6 +106,7 @@ async function getCurSemEnrolledCourses(req, res) {
 
     // transformation of data
     const data = courses[0].$getPopulatedDocs()[0].coursesEnrolled;
+    console.log(data);
 
     return res.status(200).json(data);
   } catch (error) {
@@ -114,26 +119,38 @@ async function getCurSemEnrolledCourses(req, res) {
 
 async function getPrevSemsEnrolledCourses(req, res) {
   try {
-    let curSem = await Student.find({ _id: req.id }).select("sem -_id");
-    curSem = curSem[0].sem;
+    const curSem = await Student.findOne({ _id: req.id }).select("sem -_id");
+    console.log(curSem.sem);
+
     const courses = await EnrolledCourse.find({
       student: req.id,
-      sem: { $lt: curSem },
+      sem: { $lte: curSem.sem },
     })
       .populate({
         path: "coursesEnrolled",
-        select: "_id courseName",
+        select: "_id courseName semester",
       })
       .select("sem -_id");
+    // .sort({ sem: 1 });
+
+    console.log("coursess: " + courses);
+    let enCourses = [];
 
     // if student has not enrolled for any course yet
     if (!courses.length)
       return res
         .status(204)
         .json({ meessage: "You have not enrolled for any course" });
-
-    console.log(courses[0].sem);
-    return res.status(200).json(courses);
+    else {
+      for (let i = 0; i < courses.length; i++) {
+        courses[i].coursesEnrolled.forEach((course) => {
+          enCourses.push(course);
+        });
+      }
+      console.log(enCourses);
+      return res.status(200).json(enCourses);
+      // courses[1].coursesEnrolled;
+    }
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -145,22 +162,16 @@ async function getPrevSemsEnrolledCourses(req, res) {
 async function getCourseDetail(req, res) {
   try {
     const id = req.params.id;
+    console.log(id);
     const courseInfo = await Course.findById(id)
       .select("-_id -__v -session -CoPoMap")
       .populate({
         path: "teachingFaculty",
         select: "name -_id",
-      })
-      .populate({
-        path: "belongingProgram",
-        select: "progName -_id",
-      })
-      .populate({
-        path: "belongingDepartment",
-        select: "deptName -_id",
       });
 
     console.log(courseInfo);
+    console.log(courseInfo.teachingFaculty.name);
 
     if (!courseInfo)
       return res
@@ -217,11 +228,13 @@ async function getProgress(req, res) {
 async function getCurSemResult(req, res) {
   // find the grade of student in each subject
   const rollno = req.rollno;
+  const id = req.id;
 
   console.log(rollno);
+  console.log(id);
 
   // first and foremeost find the Cur Academic courses that has been enrolled by student and also determine the details of student.
-  const curAcadCourses = await Student.find({ _id: req.id })
+  const curAcadCourses = await Student.find({ _id: id })
     .populate({
       path: "curAcademic",
       select: "coursesEnrolled session period -_id",
@@ -240,8 +253,7 @@ async function getCurSemResult(req, res) {
     sem: curAcadCourses[0].sem,
   });
 
-  if (checkResultExist)
-    return res.status(200).json({ result: checkResultExist });
+  if (checkResultExist) return res.status(200).json(checkResultExist);
 
   // const cId = curAcadCourses[0].$getPopulatedDocs()[0].coursesEnrolled;
 
@@ -261,7 +273,8 @@ async function getCurSemResult(req, res) {
       select: "courseCode courseName credit -_id",
     });
 
-  console.log("obtgrades" + ObtGrades);
+  console.log("obtgrades: " + ObtGrades);
+  console.log("obtgrades len: " + ObtGrades.length);
 
   // Check that for all the registered courses grading has been performed or not
   if (ObtGrades.length != cId.length)
@@ -356,8 +369,197 @@ async function getCurSemResult(req, res) {
 
   await newResult.save();
 
-  return res.status(200).json({ result: newResult });
+  return res.status(200).json(newResult);
 }
+
+// get results till currently finished semester
+async function getAllSemResult(req, res) {
+  // find all results till currently finished semester for the logged in student
+  try {
+    const rollno = req.rollno;
+
+    console.log(rollno);
+
+    const checkResultExist = await Result.find({ rollNo: rollno });
+    console.log(checkResultExist[0]);
+    // If result doesnot exist then user won't be able to see any result
+    if (!checkResultExist.length)
+      return res
+        .status(403)
+        .json({ message: "No result has been published of yours" });
+
+    return res.status(200).json(checkResultExist);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+async function getRunningTranscript(req, res) {
+  try {
+    const rollno = req.rollno;
+
+    console.log(rollno);
+
+    const curSemRegisterdCourses = await Student.find({ _id: req.id })
+      .populate({
+        path: "curAcademic",
+        populate: {
+          path: "coursesEnrolled",
+          select: "courseCode courseName credit -_id",
+        },
+        select: "coursesEnrolled -_id",
+      })
+      .select("name sem");
+
+    if (!curSemRegisterdCourses.length)
+      return res
+        .status(204)
+        .json({ message: "No courses enrolled for the current semester" });
+
+    // transformation of data for the cur sem courses
+    const data =
+      curSemRegisterdCourses[0].$getPopulatedDocs()[0].coursesEnrolled;
+
+    console.log(data);
+    const checkResultExist = await Result.find({
+      rollNo: rollno,
+    }).sort({
+      sem: 1,
+    });
+
+    // transformation of data for each courses corresponding to each semester
+
+    let courseGradeInfoTemp = [];
+    let totalCreditCounted = 0;
+    let sgpa = 0;
+    let cgpa = 0;
+    let activeBackLog = 0;
+    let withheld = 0;
+    let xGrade = 0;
+    let iGrade = 0;
+
+    await data.forEach((course) => {
+      courseGradeInfoTemp.push({
+        courseCode: course.courseCode,
+        courseName: course.courseName,
+        credit: course.credit,
+        gradeObt: "NA",
+      });
+    });
+
+    let result = {
+      name: curSemRegisterdCourses[0].name,
+      rollno: rollno,
+      prevSemNo: curSemRegisterdCourses[0].sem - 1,
+      totalCreditCompleted: totalCreditCounted,
+      prevSemSgpa: sgpa,
+      cgpa: cgpa,
+      activeBackLog: activeBackLog,
+      withheld: withheld,
+      xGrade: xGrade,
+      iGrade: iGrade,
+      courses: courseGradeInfoTemp,
+    };
+
+    console.log(checkResultExist);
+    // If result doesnot exist then user woild be able to see only current sem enrolled courses with NA as obtGrades
+    if (!checkResultExist.length) return res.status(403).json(result);
+
+    // if result exist
+    let courseGradeInfo = [];
+
+    checkResultExist.forEach((result) => {
+      totalCreditCounted += result.totalCreditCounted;
+      result.courses.forEach((course) => {
+        courseGradeInfo.push({
+          courseCode: course.courseCode,
+          courseName: course.courseTitle,
+          credit: course.credit,
+          gradeObt: course.gradeObt,
+        });
+      });
+    });
+
+    // calculate how many backlog and Xgrade, Igrade, and withheld
+    let cgiLength = courseGradeInfo.length;
+    for (let i = 0; i < cgiLength; i++) {
+      if (courseGradeInfo[i].gradeObt == "W") {
+        for (let j = i + 1; j < cgiLength; j++) {
+          if (courseGradeInfo[j].gradeObt == "W") withheld += 1;
+          else if (courseGradeInfo[j].gradeObt == "X") xGrade += 1;
+          else if (courseGradeInfo[j].gradeObt == "I") iGrade += 1;
+          else if (courseGradeInfo[j].gradeObt == "F") activeBackLog += 1;
+        }
+      } else if (courseGradeInfo[i].gradeObt == "F") {
+        for (let j = i + 1; j < cgiLength; j++) {
+          if (courseGradeInfo[j].gradeObt == "W") withheld += 1;
+          else if (courseGradeInfo[j].gradeObt == "X") xGrade += 1;
+          else if (courseGradeInfo[j].gradeObt == "I") iGrade += 1;
+          else if (courseGradeInfo[j].gradeObt == "F") activeBackLog += 1;
+        }
+      } else if (courseGradeInfo[i].gradeObt == "I") {
+        for (let j = i + 1; j < cgiLength; j++) {
+          if (courseGradeInfo[j].gradeObt == "W") withheld += 1;
+          else if (courseGradeInfo[j].gradeObt == "X") xGrade += 1;
+          else if (courseGradeInfo[j].gradeObt == "I") iGrade += 1;
+          else if (courseGradeInfo[j].gradeObt == "F") activeBackLog += 1;
+        }
+      } else if (courseGradeInfo[i].gradeObt == "X") {
+        for (let j = i + 1; j < cgiLength; j++) {
+          if (courseGradeInfo[j].gradeObt == "W") withheld += 1;
+          else if (courseGradeInfo[j].gradeObt == "X") xGrade += 1;
+          else if (courseGradeInfo[j].gradeObt == "I") iGrade += 1;
+          else if (courseGradeInfo[j].gradeObt == "F") activeBackLog += 1;
+        }
+      }
+    }
+
+    // check that student is still have aenrolled for the same program or not and determine that courses of current sem with NA as gradesObt shoudld be added in running transcript
+    if (checkResultExist.length < curSemRegisterdCourses.sem)
+      courseGradeInfo.push(courseGradeInfoTemp);
+
+    console.log(
+      checkResultExist[checkResultExist.length - 1].sgpa,
+      checkResultExist[checkResultExist.length - 1].cgpa
+    );
+
+    // now update the result that we have created earlier to get the updated result
+    let newResult = {
+      totalCreditCompleted: totalCreditCounted,
+      prevSemSgpa: checkResultExist[checkResultExist.length - 1].sgpa,
+      cgpa: checkResultExist[checkResultExist.length - 1].cgpa,
+      activeBackLog: activeBackLog,
+      withheld: withheld,
+      xGrade: xGrade,
+      iGrade: iGrade,
+      courses: courseGradeInfo,
+    };
+
+    result = { ...result, ...newResult };
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+async function getStudentProfile(req, res) {
+  try {
+    const id = req.id;
+    console.log(id);
+    const profile = await Student.findOne({ _id: id }).select(
+      "-_id -__v -password -curAcademic"
+    );
+    console.log(profile);
+    if (profile) return res.status(200).json(profile);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
 module.exports = {
   courseEnrollement,
   getCurSemEnrolledCourses,
@@ -365,4 +567,7 @@ module.exports = {
   getCourseDetail,
   getProgress,
   getCurSemResult,
+  getAllSemResult,
+  getRunningTranscript,
+  getStudentProfile,
 };

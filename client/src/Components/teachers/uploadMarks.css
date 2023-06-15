@@ -1,0 +1,105 @@
+.body1{
+  margin: auto;
+  font-size: 15px;
+  overflow: hidden;
+  top: 0;
+  display: flex;
+  justify-content: center;
+  margin: auto;
+  width: 100%;
+  right:0;
+  padding-top: 7%;
+}
+
+.heading{
+    text-align: center;
+
+}
+.umarks{
+  text-align: center;
+  padding: 30px;
+  padding-left: 20px;
+}
+.umarks h1{
+  font-size: 30px;
+  color: rgb(26, 66, 189);
+  font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
+}
+.form1{
+
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    justify-content: center;
+    text-align: right; 
+}
+.selectmarks{
+  margin-left: 10%;
+  
+}
+
+.label1{
+  display: flex;
+  flex-direction:row;
+  text-align: left;     
+}
+.input1{
+    padding-left: 20px;
+    width: 300px;
+    border-radius: 5px;
+    margin-left: 4px;
+    
+    
+}
+.input_1{
+  background-color: #4942E4;
+  color: #f2f2f2;
+}
+.table1  {
+    margin-left: 30%;
+    text-align: center;
+    border-collapse:separate ;
+    border-spacing: 20px;
+    width: 150px;
+    border: 2px solid #ddd;
+  }
+  
+  .table1.th {
+    margin-left: 100px;
+    text-align: center;
+    padding: 16px;
+  }
+  .table1.tb{
+    margin-left: 100px;
+    text-align: center;
+    padding: 16px;
+  }
+  
+  .table1.tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+
+  .topnav {
+    background-color: #333;
+    overflow: hidden;
+  }
+  
+  /* Style the links inside the navigation bar */
+  .topnav a {
+    float: left;
+    color: #f2f2f2;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    font-size: 17px;
+  }
+  
+  /* Change the color of links on hover */
+  .topnav a:hover {
+    background-color: #ddd;
+    color: black;
+  }
+  
+  /* Add a color to the active/current link */
+ 

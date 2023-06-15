@@ -1,0 +1,49 @@
+.register_container{
+   
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    justify-content: center;
+    padding: 5px;
+    max-width: 600px; width: 90%;
+    text-align: left;
+    overflow: hidden;
+    white-space:nowrap;
+}
+.register_row{
+    display: flex;
+    flex-direction: column;
+    padding: 7px;
+}
+.register_row a{
+    text-align: center;
+}
+.register_row input, select{
+    border-radius: 5px;
+    border: .1px solid rgb(130, 127, 127);
+    color: rgb(64, 63, 63);
+    height: 30px;
+    padding-left: 7px;
+}
+.register_row label{
+    color: rgb(80, 77, 77) ;
+}
+.register_row h1{
+    text-align: center;
+    font-size: large;
+}
+.register_btn{
+    display: block;
+    margin: auto;
+    padding: 5px;
+    border-radius: 15px;
+    width: 9rem;
+    background-color: rgb(80, 80, 251);
+    color: aliceblue;
+    margin-top: 4px;
+}
+.form-error{
+    font-size: 1.4rem;
+    color: #b22b27;
+}

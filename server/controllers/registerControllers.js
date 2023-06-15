@@ -20,7 +20,17 @@ async function registerStudent(req, res) {
       enrolledProgram,
     } = req.body;
 
-    console.log(req.body.name, req.body.email);
+    console.log(
+      name,
+      rollNo,
+      sem,
+      yoa,
+      deptName,
+      gender,
+      email,
+      password,
+      enrolledProgram
+    );
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: " Bad Request" });
@@ -47,12 +57,13 @@ async function registerStudent(req, res) {
     await newStudent.save();
 
     // return the created data with token
-    return res.status(200).json({
+    return res.status(201).json({
       student: {
         id: newStudent.id,
         email: newStudent.email,
         name: newStudent.name,
       },
+      message: "Registration Successful",
     });
   } catch (error) {
     res.status(500).json({ message: "Interval Server Error" });
@@ -86,15 +97,6 @@ async function registerFaculty(req, res) {
 
     await newFaculty.save();
 
-    // Sign a JWT access token and return with response
-
-    const payload = {
-      id: newFaculty.id,
-      role: "faculty",
-    };
-
-    const token = jwt.sign(payload, process.env.JSON_TOKEN_SECRET);
-
     // return the created data with token
     return res.status(201).json({
       faculty: {
@@ -102,7 +104,7 @@ async function registerFaculty(req, res) {
         email: newFaculty.email,
         name: newFaculty.name,
       },
-      accessToken: token,
+      message: "Registration Successful",
     });
   } catch (error) {
     res.status(500).json({ message: "Interval Server Error" });

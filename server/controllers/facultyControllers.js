@@ -1,9 +1,6 @@
 const XLSX = require("xlsx");
 const multer = require("multer");
 const Course = require("../models/courseSchema");
-const Faculty = require("../models/facultySchema");
-const Program = require("../models/programSchema");
-const Department = require("../models/departmentSchema");
 // const StudentMarks = require("../models/marksSchema");
 // const Result = require("../models/resultSchema");
 const Marks = require("../models/marks");
@@ -118,6 +115,7 @@ const readUploadedFile = async (filename, eType, courseId) => {
 
     // declare an array to store the marks of each student and then use a single database operation for bulk write
     let studentsMarks = [];
+    let updateMarks = [];
 
     var k = 4;
     var l = 0;
@@ -202,7 +200,9 @@ const readUploadedFile = async (filename, eType, courseId) => {
         total: total,
         category: categorization,
       });
+
       studentsMarks.push(studentMarks);
+
       // await studentMarks.save();
       // console.log(studentMarks);
 
@@ -579,15 +579,58 @@ const relativeGradingUsingClustering = async (topper, sMarks) => {
   });
   sd = Math.sqrt(sum2 / parseFloat(studentMarks.length));
   console.log(mean, sd);
+
+  return mean, sd;
+
+  // generate the range for grading
+  let range = [
+    {
+      min: 0,
+      max: 0,
+    },
+    {
+      min: 0,
+      max: 0,
+    },
+    {
+      min: 0,
+      max: 0,
+    },
+    {
+      min: 0,
+      max: 0,
+    },
+    {
+      min: 0,
+      max: 0,
+    },
+    {
+      min: 0,
+      max: 0,
+    },
+    {
+      min: 0,
+      max: 0,
+    },
+    {
+      min: 0,
+      max: 0,
+    },
+  ];
+
+  if (mean - sd / 2 > 0 && mean - sd > 50) {
+    range[3].min = mean - sd / 2;
+    range[3].max = mean + sd / 2;
+  }
 };
 
-// adding of student marks for every
+// adding of student marks for every sessional exam
 async function studentMarks(req, res) {
   try {
-    const fname = req.file.filename;
     const courseId = req.params.id;
     const { eType } = req.body;
-    console.log(fname, eType, courseId);
+    const fname = req.file.filename;
+    console.log(courseId, eType, fname);
     if (!fname || !eType || !courseId) {
       return res
         .status(404)
@@ -670,7 +713,7 @@ async function generateFinalCourseAndProgramOutcome(req, res) {
     const courseID = req.params.id;
     const { threshold, thresholdForCO } = req.body;
 
-    // console.log(session, dept, sem, courseCode, threshold);
+    console.log(threshold, thresholdForCO);
 
     if (!threshold)
       return res
@@ -693,7 +736,7 @@ async function generateFinalCourseAndProgramOutcome(req, res) {
     }).select("-_id -__v -courseId");
 
     if (checkCOExist && checkPoExist)
-      return res.status(302).json({ CO: checkCOExist, PO: checkPoExist });
+      return res.status(200).json({ CO: checkCOExist, PO: checkPoExist });
 
     const studentMarks = await FinalMarksInPercentage.find(
       {
@@ -746,7 +789,7 @@ async function generateFinalCourseAndProgramOutcome(req, res) {
     const poValue = await generateProgramOutcome(COs, courseID);
 
     console.log(poValue[0]);
-    // Saves the finalCourse on sacle of 1 to 3.
+    // Saves the finalCourseOutcome on scale of 1 to 3.
     const finalCOs = new CourseOutcome({
       courseId: courseID,
       CO1: COs[0],
@@ -787,7 +830,7 @@ async function generateFinalCourseAndProgramOutcome(req, res) {
       PO: poValue[15],
     };
 
-    return res.status(201).json({ CO: CourseOutcomes, PO: ProgramOutcomes });
+    return res.status(200).json({ CO: CourseOutcomes, PO: ProgramOutcomes });
   } catch (error) {
     console.log(error);
     res.status(501).json({ message: "Internal Server Error" });
@@ -872,10 +915,10 @@ async function generateStudentsResult(req, res) {
     // decide the others grade relatively to topper method 1
 
     // decide the student result using clustering method
-    // const result = await relativeGradingUsingClustering(
-    //   topper,
-    //   checkFinalMarksExist
-    // );
+    const result = await relativeGradingUsingClustering(
+      topper,
+      checkFinalMarksExist
+    );
 
     return res.status(200).json({ message: "Result has been calculated" });
   } catch (error) {
@@ -886,7 +929,7 @@ async function generateStudentsResult(req, res) {
 
 // get student marks in order to decide the range for marks calculation
 
-async function getTempResult(req, res) {
+async function getTempGrades(req, res) {
   try {
     const courseID = req.params.id;
 
@@ -900,7 +943,9 @@ async function getTempResult(req, res) {
     ).sort({ rollNo: 1 });
 
     if (!checkFinalMarksExist)
-      return res.status(403).json({ message: "resource access denied" });
+      return res
+        .status(203)
+        .json({ message: "Marks For Course Has Not Been Uploaded Yet" });
 
     // calculation of mean and standard deviation
     let mean, sd;
@@ -919,6 +964,8 @@ async function getTempResult(req, res) {
     });
     sd = Math.sqrt(sum2 / parseFloat(studentMarks.length));
     console.log(mean, sd);
+
+    // determine the range for grading using clustering technique
 
     // Ranges for the grades
     let range = [
@@ -1028,8 +1075,7 @@ async function getTempResult(req, res) {
       F: count[7],
     };
 
-    console.log(fR);
-    return res.status(200).json({ gradeFreq: gradeFreq, result: result });
+    return res.status(200).json(checkFinalMarksExist);
   } catch (error) {
     console.log(error);
     return res.status(501).json({ message: "Internal server error" });
@@ -1123,12 +1169,14 @@ async function generateGrades(req, res) {
   }
 }
 
+// file uploader
+
 module.exports = {
   addCourseAndOutcome,
   studentMarks,
   generateFinalCourseAndProgramOutcome,
   getCOPO,
   generateStudentsResult,
-  getTempResult,
+  getTempGrades,
   generateGrades,
 };

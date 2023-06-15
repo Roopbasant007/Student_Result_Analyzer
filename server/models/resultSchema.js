@@ -38,7 +38,7 @@ var resultSchema = new mongoose.Schema({
         type: String,
       },
       credit: {
-        type: String,
+        type: Number,
       },
       gradeObt: {
         type: String,

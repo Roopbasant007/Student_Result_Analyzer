@@ -9,12 +9,16 @@ const {
   getCourseDetail,
   getProgress,
   getCurSemResult,
+  getAllSemResult,
+  getRunningTranscript,
+  getStudentProfile,
 } = require("../controllers/studentControllers");
 
 // student update routes
 
 const {
   updateEnrolledCourses,
+  updateProfile,
 } = require("../controllers/studentUpdateControllers");
 
 const studentRouter = express.Router();
@@ -66,6 +70,33 @@ studentRouter.get(
   verifyCookies,
   verifyIfStudent,
   getCurSemResult
+);
+
+studentRouter.get(
+  "/result/allSemResult",
+  verifyCookies,
+  verifyIfStudent,
+  getAllSemResult
+);
+
+studentRouter.get(
+  "/result/runningTranscript",
+  verifyCookies,
+  verifyIfStudent,
+  getRunningTranscript
+);
+
+studentRouter.put(
+  "/updateProfile",
+  verifyCookies,
+  verifyIfStudent,
+  updateProfile
+);
+studentRouter.get(
+  "/studentProfile",
+  verifyCookies,
+  verifyIfStudent,
+  getStudentProfile
 );
 
 module.exports = studentRouter;

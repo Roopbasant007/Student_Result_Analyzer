@@ -26,7 +26,14 @@ const studentRouter = require("./routes/studentRoutes");
 
 // Configuration middlewares
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    methods: ["POST", "GET", "PUT", "DELETE"], // Replace with your frontend URL
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -40,7 +47,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/faculty", facultyRouter);
 app.use("/api/student", studentRouter);
 
-const PORT = process.env.SERVER_PORT || 3000;
+const PORT = process.env.SERVER_PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port: ${PORT}`);
 });

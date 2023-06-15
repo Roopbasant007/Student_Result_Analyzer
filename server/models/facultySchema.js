@@ -13,6 +13,7 @@ var facultySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+
   deptName: {
     type: String,
     required: true,
